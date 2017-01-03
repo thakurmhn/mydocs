@@ -1,0 +1,164 @@
+Installing Chef-server
+
+
+
+1 - download and install chef-server chef-server-core-12.8.0-1.el6.x86_64
+
+# chef-server-ctl reconfigure
+
+# chef-server-ctl user-create mohan Mohan Thakur mohan@mhn.com 'Letme1in' --filename /root/mohanthakur.pem
+
+# chef-server-ctl org-create short_name 'chef-mhn-org' --association_user mohan --filename chef-mhn-org-validator.pem
+
+# wget https://packages.chef.io/files/stable/chef-manage/2.4.3/el/5/chef-manage-2.4.3-1.el5.x86_64.rpm
+
+# chef-manage-ctl reconfigure
+
+# chef-server-ctl  reconfigure
+
+https://che-server-ip
+
+
+
+2. Install configure Workstation
+
+
+- download and install chefdk-0.15.16-1.el6.x86_64.rpm
+
+# chef verify
+
+# echo 'eval "$(chef shell-init bash)"' >> ~/.bash_profile
+
+# source ~/.bash_profile
+
+# download chef starter kit by accessing organization 
+
+# knife client list
+
+# knife ssl fetch
+
+# knife client list
+
+# ll .chef/trusted_certs/
+
+# knife bootstrap server1.mhn.com -x root -P redhat -N Workstation
+
+# knife bootstrap server2.mhn.com -x root -P Letme1in -N server2
+
+3. Add repository to git
+
+# mv chef-repo/ chef-repo_org
+
+# git clone https://github.com/chef/chef-repo.git
+
+# cd chef-repo_org/
+
+# cp -ar .chef/ ../chef-repo/
+
+# cp -ar .chef/ ../chef-repo/
+
+# chef client list
+
+# knife client list
+
+- Login to the github and create repository chef-repo in your git account
+# cd chef-repo
+# git init
+# git add .
+
+# git commit -m "initial commit"
+
+# git remote add mhn https://github.com/thakurmhn/chef-repo.git
+
+# git push -u mhn master
+
+# vi .gitignore   >>  add .chef/* in ignore list
+
+4. Create cookbook
+
+# knife cookbook create nginx
+
+# cd cookbooks/nginx/
+
+# cd cookbooks/nginx/
+
+# vi default.rb
+
+ "service 'httpd' do 
+	 action [ :disable, :stop ]
+	end
+
+  package 'nginx' do 
+	action :install
+	end
+
+		service 'nginx' do
+		action [ :enable, :start ]
+end"
+
+
+
+- Set editor in knife.rb
+
+# .chef/knife.rb
+
+knife[:editor]="vim"
+
+- Add runlist for the node server2
+
+knife node run_list add serveer2 "reciepe[nginx]"
+
+OR
+
+knife node edit server2
+
+----------------------------------------
+		{
+  "name": "server2",
+  "chef_environment": "_default",
+  "normal": {
+    "tags": [
+
+    ]
+  },
+  "policy_name": null,
+  "policy_group": null,
+  "run_list": [
+  "recipe[nginx]"
+]
+
+}
+ 
+-----------------------------------------
+
+- Upload changes to git repo
+
+# git status
+
+# git add .gitignore
+# git add .chef/knife.rb
+# git add cookbooks/nginx/
+
+# git status
+
+# git commit -m "crated nginx cookbook"
+
+# git push -u mhn master
+
+==============================================================================
+
+Linux Acadamy Command References 
+
+- Add runlist for the node server2
+
+knife node run_list add server2 "reciepe[nginx]"
+
+
+- Add new reciepe to the runlist before existing reciepe
+
+knife node run_list add server2 -b "reciepe[nginx]" "reciepe[mhn-security]"
+
+- Edit run list 
+
+knife node edit server2
+
