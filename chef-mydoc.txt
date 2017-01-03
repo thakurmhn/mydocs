@@ -1,0 +1,463 @@
+
+
+Download Chef Cient
+
+curl -L https://www.opscode.com/chef/install.sh | sudo bash
+
+
+
+Understanding the client.rb file
+It is the configuration file located at /etc/chef/client.rb (by default) on a client node.
+
+Since the client.rb file is a Ruby file, valid ruby code can be inserted anywhere in the file, and this can be used to control client configuration attributes
+
+
+knife bootstrap server1.mhn.com -x user -P password -N (node alias name)
+
+knife bootstrap  -x user -P password -N nodename
+
+
+Workstation -- where recipes are written. 
+Recipes are then uploaded to chef server.
+
+
+use the fully qualified domain name in a production environment.
+
+
+This validation key should be deleted from the node after the first run of a chef-client
+
+What is convergence?
+
+Convergence occurs when we run chef-client.
+
+How to create Data Bags and upload to server?
+
+- Create admin.json and sudoers.json files in chef-repo/data_bags
+- knife data bag create users
+- knife data bag create groups
+- knife data_bag from file users admin.json
+- knife data_bag from file groups sudoers.json
+
+
+What is Provider?
+
+Provider works with resources.
+Provider can be an ap-get command or Yum command or can be a service command.
+
+
+
+
+Chef Server Details:
+
+Two types of Chef servers
+Open Source and Enterprise.
+Open Source :- Its a free version.Do not have organizations feature. You have to manage the server on your own.
+Enterprise :- Its scalable. It can scale to thousands and thousands of nodes.Available organizations.Always available.
+There is another version of chef-enterprise called in-premise. The only difference is that you have to manage it on your own.
+Chef server also allows you to integrate with LDAP.(Not available on Open Source version)
+
+
+
+What are Resources?
+
+Recipes are made of resources.Resources are tied to providers.
+
+Execute Linux command:
+
+In defult.rb
+--execute "rm /etc/httpd/conf.d/welcome.conf"
+
+Organizatin:
+
+authenticate the node against the chef server.
+-- Security Best Practice :- Always remove the validation.pem file after first successful convergence of chef client.
+
+
+knife node run_list add linuxnode role[webserver]
+
+How to add role node :
+
+knife node run_list add linuxnode role[webserver]
+
+Chef Repo:
+
+Chef-Repo
+Located on the workstation and installed with the starter kit, should be synchronized with a version control system like GIT or SVN and stores CookBooks, roles, data bags, environments and configuration files.
+
+Chef Server:
+
+Chef-Server is the hub of all configuration data.It stores the cookbooks and the policies applied to the node.
+
+
+
+Receipies:
+
+Fundamental configuration element with in an organization. They are created in Ruby language. Recipes are stored in cookbooks.Recipes can include other recipes and they can have dependencies on other recipes.Recipes must be added to run list using knife tool.
+
+created in Ruby language. Recipes are stored in cookbooks.Recipes can include other recipes and they can have dependencies on other recipes.Recipes must be added to run list using knife tool.
+
+File Resouces:
+in recipe file :-
+cookbook_file do
+source ""
+mode "0644"
+end
+
+
+Chef Client in details:
+
+There might be exceptions when we run chef-client. We can write handlers to notify those excretions to administrators.
+-- Client .rb file is the chef-client configuration file.
+-- Ohai builds the node objects from the attributes.
+-- Ohai runs just before the convergence and after the convergence.
+
+Chef Client Run:
+
+- Authenticate against the chef server using client.pem
+- Builds the node objects and runs ohai.
+- Synchronizes with chef-server. Recieve cookbooks/policies.
+-Executes/compiles the desired policies.
+-Runs the node object.
+-Complets
+-(Runs ohai again?)
+
+How to change the environment:
+command- knife environment from file dev.rb
+- To change the environment on node , change the client.rb file. Add environment "dev" in that file.
+
+Knife:
+
+It is a command line tool which provides an interface between the local chef-repo and chef-server.
+
+
+ Environments:
+
+Used to organize environments(Prod/Staging/Dev/QA) generally used with cookbook versions.
+
+Attribute President:
+
+- At the very end of convergence, the node object is uploaded to chef-server.
+- Node object defines the current state of the node 
+- Node object is stored on the chef-server so that it can be searched.
+- Node object is updated at each convergence.
+- If there are attributes with the same name then attribute precedence will determine which attribute will be applied
+on the node object.
+1) Default :- Lowest precedence.
+2) Force_Default:- Overrides the default precedence.
+3) Normal :- Setting that persist on the node object.
+4) Override :- Higher precedence than Normal , should be used only when required.
+5) force_Override :- takes precedence over an override attributes set by a role or an environment.
+6) Automatic :- Attributes populated by Ohai tool at the start of precedence run and can not be modified.
+
+Roles:
+
+- A role is essentailly a listing of recipes and attributes that are to be executed on a node. So instead of assigning a run list for each node we assign the node a role.
+- A base role can be defined inside roles.
+- Knife role create role_name
+- chef-repo/roles/rolename.rb
+- knife role from file chef-repo/roles/rolename.rb
+- knife role list -w
+- knife role delete role_name
+
+Node Objects:
+
+Consists of run-list and node attributes that describe states of the node
+
+What happens when you use knife to bootrap node:
+
+- Installs Knife
+- Installs Ohai
+- Installs Ruby
+- Installs Chef-Client
+- Installs a few other additional items.
+
+- Syntax :-
+knife bootstrap -x -P password -N Nodename
+- In Production , use FQDN for NodeName
+
+How to setup local git repo :
+
+- git init
+- git add .
+-git commit -m "commit chef repo for the first time"
+-git remote add origin https://User_Name@github.com/user_Name/linuxacademy-chef.git
+-git push -u origin master
+
+Key concepts:
+
+- Recipes are made up of a collection of resources.
+- Resources are tied to providers.
+- Cookbooks are collections of recipes.
+- A run list defines the order in which recipes run during the convergence.
+
+
+Attributes:
+Specific details about the node, used by chef-client to understand current state of the node, on the previous chef-client run, and the state of the node at the end of current chef-client run.
+
+What is cookbook:
+
+Cookbook is made of Recipes. Can have versions , templates,metadata of recipes.We can add attributes inside cookbook. Can add helpers that uses Ruby code.
+
+DataBags:
+
+A global variables stored as JSON data and is accessible from chef-server
+
+
+
+Adding First Cookbook Apache:
+
+# knife cookbook create apache
+# cookbook/apache/recipe/default.rb
+
+package "httpd" do 
+	action :install
+end
+# knife node run_list add server2  "recipe[apache]"
+
+Adding Attributes, Recipie and Templates to apache Cookbook:
+
+# cd cookbooks/apache
+# cat apache/attributes/default.rb
+default["apache"]["sites"]["web1"] = { "port" => 80, "domain" => "web1.mhn.com" }
+default["apache"]["sites"]["web2"] = { "port" => 80, "domain" => "web2.mhn.com" }
+
+# cat apache/recipes/default.rb 
+#
+# Cookbook Name:: apache
+# Recipe:: default
+#
+# Copyright 2016, YOUR_COMPANY_NAME
+#
+# All rights reserved - Do Not Redistribute
+
+
+package "httpd" do 
+	action :install
+end
+
+node["apache"]["sites"].each do |sitename, data|
+	document_root = "/content/sites/#{sitename}"
+	directory document_root do
+		mode "0755"
+		recursive true
+	end
+template "/etc/httpd/conf.d/#{sitename}.conf" do 
+	source "vhost.erb"
+	mode "0644"
+	variables(
+		:document_root => document_root,
+		:port => data["port"],
+		:domain => data["domain"]
+	)
+	notifies :restart, "service[httpd]"
+    end
+end 
+
+service "httpd" do
+	action [:enable, :start]
+end
+
+service "iptables" do
+	action [:disable, :stop]
+end
+
+
+# cat apache/templates/default/vhost.erb 
+#vhost template file
+
+<% if @port == 80 -%>
+	NameVirtualHost *:80
+<% end -%>
+
+<VirtualHost *:<%= @port %> >
+	ServerName <%= @domain %>
+	DocumentRoot <%= @document_root %>
+
+#<Directory />
+#Options FollowSymlinks
+#AllowOverride None
+#	</Directory>
+<Directory <%= @document_root %> >
+	Options Indexes FollowSymlinks Multiviews
+	AllowOverride None
+	Order allow,deny
+	allow from all
+	</Directory>
+</VirtualHOst>
+
+# knife cookbook upload apache
+
+How to push files
+in example pushing php.ini to all nodes
+cookbook name is php
+- copy php.ini to  cookbooks/php/files
+- edit php cookbook and write following code
+
+[root@server2 cookbooks]# cat php/recipes/default.rb 
+package "php" do
+	action 	:install
+end
+
+cookbook_file "/etc/php.ini" do
+	source "php.ini"
+	mode 0644
+end
+
+
+How to execute Linux Command
+
+Eg shows remove /etc/httpd/conf.d/welcome.conf file
+edit apache recipe and write following code 
+Resouce used is “execute”
+
+execute  "rm /etc/httpd/conf.d/welcome.conf" do
+
+        only_if do
+                File.exist?("/etc/httpd/conf.d/welcome.conf")
+end
+        notifies :restart, "service[httpd]"
+
+end
+
+
+Adding Plaform Support to the Reciepe : making same apache recipe to run on Ubuntu Node
+
+- Enable ssh root login on Ubuntu in order to bootstrap the node
+
+
+
+Chef Search :
+
+Chef search allows queries to be made for any type of data that is inside chef server.
+Search queries the chef server for stored informantion
+Can search
+
+- data bags  - databags are jason variables
+- Environments
+- Roles
+- Nodes
+
+search with knife:
+# knife search node “key:pattern” -a (attribute)
+Search nested attributes
+	“memory_total:*”
+Can use wild cards in the pattern  “192.168.*”
+
+Eg. A recipe to search a outdated package 
+
+Eg .
+
+# knife  node show server2 -a apache
+# knife  node show server2 -a memory.swap
+# knife  node show server2 "os:linux"
+
+# knife  search node "platform:*" -a memory.swap.free
+
+Search nested attributes  - kernel >> release >> release number
+# knife  search node "kernel_release:3.2*”
+# knife search node “kernel_release:*” -a kernel.release
+# knife search node “os:linux AND platform:ubuntu” -a kernel
+
+
+Creating Users and Groups using Data bags:
+
+Create data bags
+
+# mkdir data_bags/users
+# mkidt data_bags/groups
+/root/chef-repo/data_bags/users
+[root@server1 users]# cat admin.json
+{
+	"id":"admin",
+	"comment":"admin user",
+	"uid":"2005",
+	"gid":"0",
+	"home":"/home/admin",
+	"shell":"/bin/bash",
+	"password":"redhat"
+
+}
+/root/chef-repo/data_bags/groups
+[root@server1 groups]# cat sudoers.json 
+{
+	"id":"wheel",
+	"gid":3005,
+	"members": [ "admin" ]
+
+}
+
+ # knife data bag create users
+# knif data bag create groups
+Update items in databag
+# knife data_bag from file users data_bags/users/admin.json
+# knife data_bag from file groups data_bags/users/sudoers.json
+
+Create Recipe to add User and Group using databag variables
+
+# knife cookbook create localusers
+
+root/chef-repo/cookbooks/localusers
+[root@server1 localusers]# vi recipes/default.rb 
+[root@server1 localusers]# cat recipes/default.rb 
+#
+# Cookbook Name:: localusers
+# Recipe:: default
+#
+# Copyright 2016, YOUR_COMPANY_NAME
+#
+# All rights reserved - Do Not Redistribute
+#
+
+search(:users, "*:*").each do |data|
+	user data["id"] do
+		comment data["comment"]
+		uid data["uid"].to_i
+		gid data["gid"].to_i     #  you may get error while conversions “ Couldn't lookup 						 # integer GID for group name 0” to fix the error add “.to_i” to 					# uid and gid attributes- chef does not understand integer or s					#string
+		home data["home"]
+		shell data["shell"]
+	end
+
+end
+include_recipe "localusers::groups"
+
+[root@server1 localusers]# cat recipes/groups.rb 
+search(:groups, "*:*").each do |data|
+	group data["id"] do
+		gid data["gid"]
+		members data["members"]
+	end
+	
+end
+
+
+
+
+
+
+
+
+Chef Environments :
+Environments are like Dev/QA/Staging and Prod
+To create chef envirionment you can use json or .rb files
+Create enviornment
+
+[root@server1 environments]# pwd
+/root/chef-repo/environments
+[root@server1 environments]# cat dev.rb 
+name "dev"
+description "This is development environment"
+cookbook "apache", "= 0.1.5"
+override_attributes({
+		"author" => {
+			"name" => "my new author name"
+}
+
+
+})
+
+#  knife environment list -w
+# knife environment from file dev.rb
+
+
+
+
