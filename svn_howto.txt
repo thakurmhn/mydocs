@@ -1,0 +1,220 @@
+How to setup SVN
+
+yum install httpd
+service httpd restart
+yum install subversion
+yum install mod_dav_svn
+cd /etc/httpd/conf.d/
+vi svn.conf
+-------------------------------------------------------------------------
+				LoadModule dav_svn_module     modules/mod_dav_svn.so
+				LoadModule authz_svn_module   modules/mod_authz_svn.so
+					<Location /repos>
+						DAV svn
+						SVNParentPath /var/www/svn
+							# Limit write permission to list of valid users.
+							AuthType Basic
+							AuthName "Authorization Realm"
+							AuthUserFile /var/www/svn-auth/passwd
+							AuthzSVNAccessFile  /var/www/svn-auth/access
+							Require valid-user
+						</Location>
+---------------------------------------------------------
+
+mv subversion.conf subversion.conf_orgssh -i "ASU_Linux_Pune_Pemkeys.pem" ec2-user@52.37.20.247
+mkdir /var/www/svn
+mkdir /var/www/svn-auth
+vi /var/www/svn-auth/access
+------------------------------------------------
+			[/]
+			mohan.thakur = rw
+-------------------------------------------
+
+htpasswd -cb /var/www/svn-auth/passwd mohan.thakur <passwd>
+cd /var/www/svn
+mkdir mhn_project
+svnadmin create mhn_project
+ll mhn_project/
+chown -R apache.apache /var/www/svn /var/www/svn-auth
+chmod 600 /var/www/svn-auth/access /var/www/svn-auth/passwd
+sudo service httpd restart
+chkconfig httpd on
+mkdir /opt/www
+mv svn /opt/www/
+mv svn-auth/ /opt/www/
+chown -R apache.apache /opt/www/
+ln -s /opt/www/svn /var/www/svn
+ln -s /opt/www/svn-auth/ /var/www/svn-auth
+/etc/init.d/httpd restart
+
+http://52.26.73.55/repos/mhn_project/
+
+Create Repositories
+
+svn info http://localhost/repos/mhn_project --username mohan.thakur
+
+cd /var/www/svn
+mkdir example_project
+
+####Check /var/www/svn/* ownership and permission otherwise you will get permission denied error while commiting changes
+chown -R apache:apache var/www/svn/*
+chmod -R 775 var/www/svn/*
+
+mkdir /tmp/svn
+svn co http://localhost/repos/example_project  --username mohan.thakur
+OR
+svn co http://52.26.73.55/repos/example_project  --username mohan.thakur
+ mkdir trunk
+ mkdir branches
+ mkdir tags
+ svn add trunk/
+ svn add branches/
+ svn add tags/
+ svn ci -m "created trunk,branches,tags"
+ svn up
+  
+===========================================================================================================
+
+Maven How To
+
+cd /tmp
+wget http://www.mirrorservice.org/sites/ftp.apache.org/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz
+
+tar -zxvf apache-maven-3.3.9-bin.tar.gz
+mkdir /opt/maven
+mv /tmp/apache-maven-3.3.9 /opt/maven/
+ln -s /opt/maven/apache-maven-3.3.9 /opt/maven/current
+
+vi ~/.bashrc
+
+export MAVEN_HOME=/opt/maven/current
+export M2_HOME=/opt/maven/current
+export M2=/opt/maven/current/bin
+export PATH=/opt/maven/current/bin:$PATH
+
+
+mvn -version
+
+====================================================================================
+
+Test Maven Build Locally
+
+Download and install Java Code in SVN
+Documented at
+https://spring.io/guides/gs/maven/#initial
+
+----------
+
+Create SVN Repo
+
+Login to SVN server
+
+cd /opt/www/svn
+svnadmin create  main
+chown apache:apache main
+chmod 775 main
+
+##Check out main repo to desktop
+
+svn co http://52.26.73.55/repos/main --username mohan.thakur
+
+###create below directory structure under main and add below code
+
+mkdir java/hello
+
+cd main/java/hello
+vi HelloWorld.java
+------------------------
+
+package hello;
+
+public class HelloWorld {
+    public static void main(String[] args) {
+        Greeter greeter = new Greeter();
+        System.out.println(greeter.sayHello());
+    }
+}
+---------------------------
+
+vi Greeter.java
+
+---------------------
+
+package hello;
+
+public class Greeter {
+    public String sayHello() {
+        return "Hello world!";
+    }
+}
+-------------------
+
+##pom.xml file under java directory
+##this is maven project description file
+
+cd ..
+vi pom.xml
+
+------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.springframework</groupId>
+    <artifactId>gs-maven</artifactId>
+    <packaging>jar</packaging>
+    <version>0.1.0</version>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>hello.HelloWorld</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+
+---------------------------
+
+cd ../..
+svn add *
+svn ci -m "Uploading test code for java"
+
+##Now login to Maven server
+
+###check out main repo under /usr/src
+
+svn co http://52.26.73.55/repos/main --username mohan.thakur
+
+cd /usr/src/java/
+mvn compile
+
+mvn package
+
+### Maven Build test Done ##########
+
+
+
+
+
+
+
