@@ -21,7 +21,7 @@ vi svn.conf
 						</Location>
 ---------------------------------------------------------
 
-mv subversion.conf subversion.conf_orgssh -i "ASU_Linux_Pune_Pemkeys.pem" ec2-user@52.37.20.247
+mv subversion.conf subversion.conf_orgssh -i "Your_Pemkeys.pem" ec2-user@<ip>
 mkdir /var/www/svn
 mkdir /var/www/svn-auth
 vi /var/www/svn-auth/access
