@@ -1,0 +1,67 @@
+Scenario -1 
+First Create Repository at github and clone and update
+
+1. Login to https://github.com
+2. Create Repository on github webconsole
+3. copy the repository endpoint (repo URL)
+4. Back to your Linux teminal
+5. git clone  https://github.com/<your reponame>/yourrepo.git
+6. cd <directory yourreponame>
+8. create testfile.txt
+9. git status
+10. git add .
+11. git commit -m "added new file"
+
+Note : if you encounter error like below then follow step 12 and 13 
+
+*** Please tell me who you are.
+
+Run
+
+  git config --global user.email "you@example.com"
+  git config --global user.name "Your Name"
+
+
+then 
+
+12.  git config --global user.email "youremail@github.com"
+13.  git config --global user.name "yourgit_username"
+
+14. git commit -m "added new file"
+15. git push --all
+
+hint: check you have correct github repo endpoint using 'git remote -v'
+
+================================================================================================================
+Scenario- 2 : Reverse scenario 1
+
+1. Login to your LInux terminal
+2. mkdir test
+3. cd test
+4. git init
+5. vi somefile
+6. git add .
+7. git status
+8. git commit -m "added new file"
+
+
+Note : if you encounter error like below then follow step 9 and 10 
+
+*** Please tell me who you are.
+
+Run
+
+  git config --global user.email "you@example.com"
+  git config --global user.name "Your Name"
+
+
+then 
+
+9.   git config --global user.email "youremail@github.com"
+10.  git config --global user.name "yourgit_username"
+
+11.  Login to github  and create new repo in webconsole; copy the endpoint
+12.  git remote add origin https://github.com/<yourrepo_name>/yourrepo.git
+
+13.  git commit -m "added new file"
+14. git push --all
