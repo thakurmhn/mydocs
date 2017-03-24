@@ -1,0 +1,11 @@
+yum install -y docker
+systemctl start docker
+systemctil status docker
+docker version
+docker info
+docker pull ubuntu:latest
+docker inspect ubuntu
+docker pull centos:latest
+docker pull training/sinatra
+
+# go to https://hub.docker.com , sign up and create a account
