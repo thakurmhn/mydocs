@@ -1,6 +1,6 @@
 yum install -y docker
 systemctl start docker
-systemctil status docker
+systemctl status docker
 docker version
 docker info
 docker pull ubuntu:latest
