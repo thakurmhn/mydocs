@@ -1,0 +1,121 @@
+[RUN ALL BELOW COMMADS on ALL NODES]
+
+yum update
+yum install -y epel-release
+
+yum install docker [v1.11 or 1.12 or 1.13]
+
+setup kubernates respos
+
+
+
+kubeadm  kubectl  kubelet
+[root@kubmaster yum.repos.d]# cat kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+
+setenforce 0
+
+yum install -y kubelet kubeadm kubectl
+
+- Add host entry in /etc/hosts
+
+systemctl start Docker
+swapoff /dev/centos/swap
+systemctl enable kubelet.service
+systemctl enable docker
+
+echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables
+
+useradd kubeadmin
+ifdown enp0s3
+
+NOTE: On Virtual BOX disable NAT network interface before hitting init
+or else port 6443 will get bound to NAT IP
+disconnect N/A from console and reboot
+
+
+kubeadm init --pod-network-cidr=10.244.0.0/16
+
+Note: If you have  multiple IPs / Hostname to bind ; run following to add name/ip in certificate
+
+kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address 192.168.56.240 --apiserver-cert-extra-sans kubemaster.mhn.com
+
+Create User
+
+su - kubeadmin
+
+
+mkdir -p $HOME/.kube
+
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+--------------------------------------------
+Your Kubernetes master has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of machines by running the following on each node
+as root:
+
+  kubeadm join 192.168.56.240:6443 --token wxf3y9.ci2txlf7ja04svyg --discovery-token-ca-cert-hash sha256:ea3eeb5de0ffd9efe6d0f304f4fd9853c005ee98902ad7a7c110425c23eeab04
+
+--------------------------------------------------------------------------------------------------------------
+
+
+In order for your pods to communicate with one another, you'll need to install pod networking.  We are going to use Flannel for our Container Network Interface (CNI) because it's easy to install and reliable.  Enter this command:
+
+
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+If you see error like beow
+
+The connection to the server localhost:8080 was refused - did you specify the right host or port?
+
+
+Do the following as normal user
+
+su - kubeadmin
+
+sudo cp /etc/kubernetes/admin.conf $HOME/
+
+sudo chown $(id -u):$(id -g) $HOME/admin.conf
+
+export KUBECONFIG=$HOME/admin.conf
+
+[root@kubmaster ~]# kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+clusterrole.rbac.authorization.k8s.io "flannel" created
+clusterrolebinding.rbac.authorization.k8s.io "flannel" created
+serviceaccount "flannel" created
+configmap "kube-flannel-cfg" created
+daemonset.extensions "kube-flannel-ds" created
+
+---------------------------------------------------------------------------------------------
+
+[kubeadmin@kubmaster ~]$ kubectl get pods
+No resources found.
+[kubeadmin@kubmaster ~]$ kubectl get pods --all-namespaces
+NAMESPACE     NAME                                READY     STATUS    RESTARTS   AGE
+kube-system   etcd-kubmaster                      1/1       Running   0          47m
+kube-system   kube-apiserver-kubmaster            1/1       Running   0          47m
+kube-system   kube-controller-manager-kubmaster   1/1       Running   0          47m
+kube-system   kube-dns-86f4d74b45-mrq4d           3/3       Running   0          1h
+kube-system   kube-flannel-ds-854ns               1/1       Running   0          47m
+kube-system   kube-proxy-rlpbc                    1/1       Running   0          1h
+kube-system   kube-scheduler-kubmaster            1/1       Running   0          47m
+[kubeadmin@kubmaster ~]$
