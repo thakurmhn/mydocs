@@ -119,3 +119,253 @@ kube-system   kube-flannel-ds-854ns               1/1       Running   0         
 kube-system   kube-proxy-rlpbc                    1/1       Running   0          1h
 kube-system   kube-scheduler-kubmaster            1/1       Running   0          47m
 [kubeadmin@kubmaster ~]$
+---------------------------------------------------------------------------------------------
+
+Validation :
+
+$ kubectl get node
+$ kubectl get node kubenode1
+$ kube ctl get pods --all-namespaces
+$ kubectl describe nodes
+$ kubectl describe node kubenode1
+
+--------------------------------------------------------------------------
+
+Deployments, Rolling updates and Rolling Back:
+
+$ cat nginx-deployment.yaml
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 2 # tells deployment to run 2 pods matching the template
+  template: # create pods using pod definition in this template
+    metadata:
+      # unlike pod-nginx.yaml, the name is not included in the meta data as a unique name is
+      # generated from the deployment name
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
+
+
+
+$ kubectl create -f nginx-deployment.yaml
+$ kubectl get deployments
+$ kubectl describe deployment  nginx-deployment
+
+ OR
+
+$ kubectl get pods
+$ kubectl describe pods
+
+Get the YAML Back :
+
+$ kubectl describe deployment  nginx-deployment -o yaml
+
+Deploy the next version of the image/container on the fly
+
+$ kubectl set image deployment/nginx-deployment nginx=nginx:1.8
+
+
+[root@kubemaster ~]# kubectl set image deployment/nginx-deployment nginx=nginx:1.8
+deployment.apps "nginx-deployment" image updated
+
+
+[root@kubemaster ~]# kubectl set image deployment/nginx-deployment nginx=nginx:1.8
+deployment.apps "nginx-deployment" image updated
+
+Check Rollout Status:
+
+[root@kubemaster ~]# kubectl rollout status deployment/nginx-deployment
+Waiting for rollout to finish: 1 out of 2 new replicas have been updated...
+Waiting for rollout to finish: 1 out of 2 new replicas have been updated...
+Waiting for rollout to finish: 1 old replicas are pending termination...
+Waiting for rollout to finish: 1 old replicas are pending termination...
+Waiting for rollout to finish: 1 old replicas are pending termination...
+deployment "nginx-deployment" successfully rolled out
+
+YOu also can Rollout Netx versin of Image by editing yaml (nginx-deployment.yml and update image version)
+Then:
+
+$ kubectl apply -f  nginx-deployment.yml
+$ $ kubectl describe deployment  nginx-deployment  (can see updated version)
+
+Scenario:
+Roll back update if rollout fails:
+
+Edit yaml with wrong image version
+
+
+[root@kubemaster ~]# kubectl apply -f deploy-nginx.yml
+Warning: kubectl apply should be used on resource created by either kubectl create --save-config or kubectl apply
+deployment.apps "nginx-deployment" configured
+
+Got error in above deployment
+Actually there is no such image and rollout is trying to get that image
+Check status :
+
+[root@kubemaster ~]# kubectl rollout status deployment/nginx-deployment
+Waiting for rollout to finish: 1 out of 2 new replicas have been updated...
+
+CTRL+C
+
+[root@kubemaster ~]# kubectl get deployment
+NAME               DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+nginx-deployment   2         3         1            2           1h
+
+
+Compare the deployment revisions as bellow - and rollback to old previous revision :
+
+[root@kubemaster ~]# kubectl rollout history deployment/nginx-deployment --revision=3
+deployments "nginx-deployment" with revision #3
+Pod Template:
+  Labels:	app=nginx
+	pod-template-hash=1512522419
+  Containers:
+   nginx:
+    Image:	nginx:1.91
+    Port:	80/TCP
+    Host Port:	0/TCP
+    Environment:	<none>
+    Mounts:	<none>
+  Volumes:	<none>
+
+[root@kubemaster ~]# kubectl rollout history deployment/nginx-deployment --revision=2
+deployments "nginx-deployment" with revision #2
+Pod Template:
+  Labels:	app=nginx
+	pod-template-hash=2889071693
+  Containers:
+   nginx:
+    Image:	nginx:1.8
+    Port:	80/TCP
+    Host Port:	0/TCP
+    Environment:	<none>
+    Mounts:	<none>
+  Volumes:	<none>
+
+
+Rollback to previous revision:
+
+[root@kubemaster ~]# kubectl rollout undo deployment/nginx-deployment --to-revision=2
+deployment.apps "nginx-deployment"
+[root@kubemaster ~]# kubectl get deployment
+NAME               DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+nginx-deployment   2         2         2            2           1h
+
+Rollout by Fixing Image version (image: nginx:1.9.1)
+
+If failed deployment is unable to resume delete the same :
+
+$ kubectl describe deployment  nginx-deployment
+
+[root@kubemaster ~]# kubectl apply -f deploy-nginx.yml
+
+[root@kubemaster ~]# kubectl describe deployment
+Name:                   nginx-deployment
+Namespace:              default
+CreationTimestamp:      Sun, 17 Jun 2018 19:34:46 +0530
+Labels:                 <none>
+Annotations:            deployment.kubernetes.io/revision=1
+                        kubectl.kubernetes.io/last-applied-configuration={"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"nginx-deployment","namespace":"default"},"spec":{"replicas":2,"selecto...
+Selector:               app=nginx
+Replicas:               2 desired | 2 updated | 2 total | 2 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=nginx
+  Containers:
+   nginx:
+    Image:        nginx:1.9.1
+-------------------------------------------------------------------------------------------------------
+
+How Kubernetes Configures Application:
+
+ConfigMaps: Is similar to Environment variable
+
+[root@kubemaster ~]# kubectl create configmap my-app --from-literal=WEB_SERVER=Apache
+configmap "my-app" created
+[root@kubemaster ~]# kubectl get configmap
+NAME      DATA      AGE
+my-app    1         16s
+
+[root@kubemaster ~]# kubectl describe configmap
+Name:         my-app
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+WEB_SERVER:
+----
+Apache
+Events:  <none>
+
+Get COnfigMap as yaml:
+
+
+[root@kubemaster ~]# kubectl get configmap my-app -o yaml
+apiVersion: v1
+data:
+  WEB_SERVER: Apache
+kind: ConfigMap
+metadata:
+  creationTimestamp: 2018-06-17T14:16:51Z
+  name: my-app
+  namespace: default
+  resourceVersion: "40240"
+  selfLink: /api/v1/namespaces/default/configmaps/my-app
+  uid: 143b49eb-7239-11e8-a99b-0800270ed631
+
+
+$ kubectl create configmap special-config --from-literal=special.how=very
+
+[root@kubemaster ~]# cat pod.configmap.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dapi-test-pod
+spec:
+  containers:
+    - name: test-container
+      image: k8s.gcr.io/busybox
+      command: [ "/bin/sh", "-c", "env" ]
+      env:
+        - name: SPECIAL_LEVEL_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: special-config
+              key: special.how
+  restartPolicy: Never
+
+
+
+
+[root@kubemaster ~]# kubectl logs dapi-test-pod
+KUBERNETES_PORT=tcp://10.96.0.1:443
+KUBERNETES_SERVICE_PORT=443
+HOSTNAME=dapi-test-pod
+SHLVL=1
+HOME=/root
+KUBERNETES_PORT_443_TCP_ADDR=10.96.0.1
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+KUBERNETES_PORT_443_TCP_PORT=443
+KUBERNETES_PORT_443_TCP_PROTO=tcp
+SPECIAL_LEVEL_KEY=very
+KUBERNETES_SERVICE_PORT_HTTPS=443
+KUBERNETES_PORT_443_TCP=tcp://10.96.0.1:443
+PWD=/
+KUBERNETES_SERVICE_HOST=10.96.0.1
+
+-------------------------------------------------------------------------------------
