@@ -1,0 +1,9 @@
+--- # Anisble AdHoc
+
+
+ansible hostlist -s -m yum -a "name=telnet state=absent"
+
+# Passing extravars
+
+asible-playbook <playbookname> --extra-vars "host=centos gather=yes pkg=ttelnet"
+
