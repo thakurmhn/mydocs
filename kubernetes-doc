@@ -110,5 +110,8 @@ On All Master nodes Run below commands
  
  =====================================================================================================================================
  
- 
+ - Check cluster informantion 
+  kubectl -n kube-system get cm kubeadm-config -oyaml
+  
+  
  
