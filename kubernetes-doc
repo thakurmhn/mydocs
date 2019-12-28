@@ -1,0 +1,111 @@
+Check ETCD health
+## change the node names 
+
+# curl --cert /etc/ssl/etcd/ssl/node-vt0dkube01.pem --key /etc/ssl/etcd/ssl/node-vt0dkube01-key.pem https://10.67.162.41:2379/health
+
+## etcdctl --endpoints=https://10.67.162.41:2379,https://10.67.162.42:2379,https://10.67.162.43:2379 --ca-file=/etc/ssl/etcd/ssl/ca.pem --cert-file=/etc/ssl/etcd/ssl/node-vt0dkube01.pem --key-file=/etc/ssl/etcd/ssl/node-vt0dkube01-key.pem cluster-health
+
+
+## ETCD list all keys
+
+# export ETCDCTL_API=3
+# etcdctl --endpoints=https://10.67.162.42:2379 --cacert="/etc/ssl/etcd/ssl/ca.pem" --cert="/etc/ssl/etcd/ssl/node-vt0dkube02.pem" --key="/etc/ssl/etcd/ssl/node-vt0dkube02-key.pem" get / --prefix --keys-only
+
+## List all Calico keys
+#etcdctl --endpoints=https://10.67.162.42:2379 --cacert="/etc/ssl/etcd/ssl/ca.pem" --cert="/etc/ssl/etcd/ssl/node-vt0dkube02.pem" --key="/etc/ssl/etcd/ssl/node-vt0dkube02-key.pem" get /calico --prefix --keys-only
+
+
+Basic Commands
+
+kubectl get componentstatuses
+
+kubectl get daemonSets --namespace=kube-system kube-proxy
+
+kubectl get deployments --namespace=kube-system dnsmasq
+
+kubectl get services --namespace=kube-system kube-dns
+
+=========================================================================================================================================
+- CONFIGURE Dashboard 
+Sometimes you may get Invalid certificate error after configuring dashboard (exposing dashbord as tryp NodePort)
+Follow below steps to create new SSL certificate and use with dashboard
+
+
+Delete follwoing object if dashboard is already configured using tools like kuebespray
+
+kubectl delete service kubernetes-dashboard
+kubectl delete pods/kubernetes-dashboard
+kubectl delete deployment kubernetes-dashborad
+kuebectl delete secret kubernetes-dashboard-certs
+
+
+mkdir $HOME/certs
+cd $HOME/certs
+openssl genrsa -out dashboard.key 2048
+openssl rsa -in dashboard.key -out dashboard.key
+openssl req -sha256 -new -key dashboard.key -out dashboard.csr -subj '/CN=localhost'
+openssl x509 -req -sha256 -days 365 -in dashboard.csr -signkey dashboard.key -out dashboard.crt
+
+
+kubectl -n kube-system create secret generic kubernetes-dashboard-certs --from-file=$HOME/certs
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
+
+kubectl -n kube-system get rs
+
+kubectl -n kube-system edit service kubernetes-dashboard
+
+Create Admin User to access dashboard
+
+https://github.com/kubernetes/dashboard/wiki/Creating-sample-user
+
+
+
+Find admin user token
+
+kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep kubeadmin | awk '{print $1}')
+
+Name:         kubeadmin-token-9mnsc
+Namespace:    kube-system
+Labels:       <none>
+Annotations:  kubernetes.io/service-account.name: kubeadmin
+              kubernetes.io/service-account.uid: c44b9f58-0e9a-11e9-96e3-0050568ad703
+
+Type:  kubernetes.io/service-account-token
+
+Data
+====
+ca.crt:     1025 bytes
+namespace:  11 bytes
+token:      eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJrdWJlYWRtaW4tdG9rZW4tOW1uc2MiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoia3ViZWFkbWluIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiYzQ0YjlmNTgtMGU5YS0xMWU5LTk2ZTMtMDA1MDU2OGFkNzAzIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmUtc3lzdGVtOmt1YmVhZG1pbiJ9.DwMQvjOtSX5rfppxanLETrCc2_Dm4mYzg4F123Y-uAerkQp39a6mtEcq8TUNWXt_0UItajjJQG5pW2G_kBz4DIyOW3TuZ2mNU_aSwkvypHFZHogpf4WEabJPaPbBpfMsZ0mAaYhqaliN5r-uSDVsRWfc04tc8l05MdUQtH-t1sTp0wiO0SFcTrXOas71cMlG5DWgcvwBdgu4JVMPdfYgMTErKlovnKpHVzkqM5pyAavL3XJvM_frNiC5QIH7K-4RuPw5v-WHlqzKg4HehKtojq20yWXodE7VSgk-tNScBpevNLv1NxQztSq8zthY90Dwl9f8RyrfmJhYnZeys7t0UA
+===========================================================================================================================================================
+
+
+Kubernetes 1.13 HOW TO FIX Error : Unable to connect to the server: x509: certificate has expired or is not yet valid
+
+On All Master nodes Run below commands
+
+ cd /etc/kubernetes/
+ /root/kube_cert_backup
+ /root/kube_config_backup
+ mv ssl/* /root/kube_cert_backup/
+ mv *.conf /root/kube_config_backup/
+ 
+ kubeadm init phase certs all --apiserver-advertise-address <Master IP>
+ 
+ kubeadm init phase kubeconfig all
+ 
+ reboot
+ 
+ systemctl status kubelet.service  -- if not running 
+ 
+ cd /etc/kubernetes/
+ cp -ar pki/* ssl/
+ 
+ kubectl cluster-info
+ kubectl get nodes
+ 
+ =====================================================================================================================================
+ 
+ 
+ 
