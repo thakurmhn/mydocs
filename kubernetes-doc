@@ -86,8 +86,8 @@ Kubernetes 1.13 HOW TO FIX Error : Unable to connect to the server: x509: certif
 On All Master nodes Run below commands
 
  cd /etc/kubernetes/
- /root/kube_cert_backup
- /root/kube_config_backup
+ mkdir /root/kube_cert_backup
+ mkdir /root/kube_config_backup
  mv ssl/* /root/kube_cert_backup/
  mv *.conf /root/kube_config_backup/
  
@@ -97,11 +97,14 @@ On All Master nodes Run below commands
  
  reboot
  
+ cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
  systemctl status kubelet.service  -- if not running 
  
  cd /etc/kubernetes/
  cp -ar pki/* ssl/
  
+  systemctl restart kubelet.service
+  systemctl status kubelet.service
  kubectl cluster-info
  kubectl get nodes
  
