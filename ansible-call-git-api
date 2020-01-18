@@ -45,7 +45,7 @@
           msg: "{{ current_data['content'] }}"
 
 
-      - name: set pathing_date fact
+      - name: set some_date fact
         set_fact:
           some_date: "{{ (current_data['content'] | from_json).name }}"
 
