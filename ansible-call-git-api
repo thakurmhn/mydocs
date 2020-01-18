@@ -1,0 +1,57 @@
+---
+- hosts: "{{ target }}"
+
+  vars:
+
+    token_vault: !vault |
+             $ANSIBLE_VAULT;1.1;AES256
+             98989839866779822348878898765439302136356432613230643161653035623861373261613565
+             65306332356436316239303666326230666633234626665787873300000066453-99394934393943
+             64653464383830623235353130663937626362366338336330643165303762666466323437393764
+             3633623039623162320a616566616261333436623431393636643535356534343836313537303463
+             36616162373031643131313735313039356531343030653233643465303361363139353861316664
+             3336643664643835889393939504505407868763498
+# https://stackoverflow.com/questions/11801983/how-to-create-a-commit-and-push-into-repo-with-github-api-v3
+
+# varfile.yml content :  {"name": "somedate_2019.01.28"}
+
+  tasks:
+
+    - block:
+
+      - name: git get current values for file
+        uri:
+          url: "https://github.com/api/v3/repos/myrepo/examples/contents/varfile.yml?ref=master"
+          headers:
+           Content-Type: "application/json"
+           Authorization: "token {{ token_vault }}"
+          return_content: yes
+          validate_certs: no
+        register: data
+
+      - name: register data
+        set_fact:
+          return_content: "{{ data['content'] }}"
+
+      - name: get current data
+        uri:
+          url: "{{ return_content['download_url'] }}"
+          return_content: yes
+          validate_certs: no
+        register: current_data
+
+      - name: get current patch cycle data
+        debug:
+          msg: "{{ current_data['content'] }}"
+
+
+      - name: set pathing_date fact
+        set_fact:
+          some_date: "{{ (current_data['content'] | from_json).name }}"
+
+
+      - name: print fact
+        debug:
+          msg: "{{ inventory_hostname }} has {{ some_date }}"
+
+      delegate_to: localhost
