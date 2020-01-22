@@ -1,0 +1,123 @@
+Jenkins as Container
+
+
+- install docker
+- install docker compose
+
+useradd -g 1000 jenkins -d /opt/jenkins_home
+passwd jenkins
+
+usermod -aG docker jenkins
+
+-  Create Docker compose file
+
+   
+   
+mkdir ~/jenkins_data   
+cat docker-compose.yml
+
+version: '3'  # docker-compse version
+services:
+  jenkins:
+    container_name: jenkins
+    image: jenkins/jenkins
+    ports:
+      - "8080:8080"
+    volumes:
+      - $PWD/jenkins_home:/var/jenkins_home
+    networks:
+      - net
+	environment: 
+	  HTTP_PROXY: ""
+	  http_proxy: ""
+	  HTTPS_PROXY: ""
+	  https_proxy: ""
+	  NO_PROXY: ""
+networks:   # create network named net
+  net:
+  
+  
+- Pull jenkins image 
+
+docker pull jenkins/jenkins
+
+- Create container 
+
+docker-compose up -d 
+
+--------------------------------------------------------------------------
+
+create Docker SSH enabled Centos container to test Jenkins SSH
+
+mkdir centos; cd centos
+- create ssh-keys
+
+ssh-keygen -f remote-key
+
+- Create Dockerfile
+
+  FROM centos:7
+
+  RUN yum install -y openssh-server passwd openssh
+  RUN useradd remote_user && \
+     echo  "1234" | passwd remote_user --stdin && \
+     mkdir /home/remote_user/.ssh && \
+     chmod 700 /home/remote_user/.ssh
+  COPY remote-key.pub /home/remote_user/.ssh/authorized_keys
+
+  RUN chown remote_user:remote_user -R /home/remote_user/.ssh && \
+    chmod 600 /home/remote_user/.ssh/authorized_keys
+
+  RUN /usr/sbin/sshd-keygen
+  CMD /usr/sbin/sshd -D
+  
+  ----------------------------------------------------------
+  
+-- Update docker-compose.yml
+
+version: '3'
+services:
+  jenkins:
+    container_name: jenkins
+    image: jenkins/jenkins
+    ports:
+      - "8080:8080"
+    volumes:
+      - $PWD/jenkins_home:/var/jenkins_home
+    networks:
+      - net
+    environment:
+      http_proxy: ""
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      https_proxy: ""
+      NO_PROXY: 127.0.0.1, localhost
+  remote_host:
+    container_name: remote_host
+    image: remote_host
+    build:
+      context: centos7
+    environment:
+      http_proxy: ""
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      https_proxy: ""
+	  NO_PROXY: 127.0.0.1, localhost
+    networks:
+      - net
+networks:
+  net:
+
+-------------------------------------------
+docker-compose up -d
+
+docker ps 
+docker exec -it jenkins /bin/bash
+
+Note : remote_host which is created in Docker-Compose file can resolve from jenkins
+ssh remote_user@remote_host
+ping remote_host
+
+docker cp remote-key jenkins:/tmp
+docker exec -it jenkins /bin/bash
+ssh -i /tmp/remote-key remote_user@remote_host
